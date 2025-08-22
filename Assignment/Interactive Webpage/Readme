@@ -1,0 +1,13 @@
+INSTRUCTIONS:
+
+1) Download all files from this repository. Place them in the same directory
+
+File list:
+    Electric and Alternative Fuel Charging Stations.csv
+    start-evmap-server.cmd
+    north_america_ev_map_offline.html
+
+2) Open file north_america_ev_map_offline.html. Double-clicking on this file should automatically
+open it in the default browser. But if some problem will arise launch start-evmap-server.cmd (for Windows systems only).
+This is a PowerShell command that will forcefully open connection to localhost server in the default browser.
+Your system will ask for Admin approval.
