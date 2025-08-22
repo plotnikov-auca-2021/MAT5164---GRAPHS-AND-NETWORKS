@@ -1,0 +1,1486 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>North America EV Charging Stations — Offline (Non-Intersecting State Borders + Edge Coloring)</title>
+  <style>
+    :root {
+      --bg: #0e1116;
+      --panel: #151a22;
+      --text: #e5e7eb;
+      --muted: #9aa3b2;
+      --ok: #34d399;
+      --warn: #fbbf24;
+      --err: #f87171
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial
+    }
+
+    #app {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      grid-template-rows: auto 1fr;
+      grid-template-areas: "header header" "sidebar main";
+      height: 100%
+    }
+
+    header {
+      grid-area: header;
+      padding: 10px 14px;
+      background: linear-gradient(180deg, #111827, #0b0f15);
+      border-bottom: 1px solid #1f2937;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600
+    }
+
+    header .sub {
+      font-size: 12px;
+      color: var(--muted)
+    }
+
+    #sidebar {
+      grid-area: sidebar;
+      background: var(--panel);
+      border-right: 1px solid #1f2937;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow: auto
+    }
+
+    #main {
+      grid-area: main;
+      position: relative
+    }
+
+    #c {
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: #0b1017
+    }
+
+    .card {
+      background: #0f141b;
+      border: 1px solid #1f2937;
+      border-radius: 12px;
+      padding: 12px
+    }
+
+    .card h3 {
+      margin: 0 0 8px 0;
+      font-size: 13px;
+      font-weight: 600
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center
+    }
+
+    label {
+      font-size: 12px;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 6px
+    }
+
+    input[type=file],
+    input[type=number],
+    input[type=range],
+    select {
+      width: 100%;
+      background: #0b1017;
+      border: 1px solid #223046;
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      outline: none
+    }
+
+    input[type=checkbox] {
+      transform: scale(1.1)
+    }
+
+    button {
+      background: linear-gradient(180deg, #1f2937, #111827);
+      color: var(--text);
+      border: 1px solid #263244;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 600
+    }
+
+    button.primary {
+      border-color: #3b82f6
+    }
+
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed
+    }
+
+    .stats {
+      font-size: 12px;
+      color: var(--muted);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 12px
+    }
+
+    .fileline {
+      font-size: 12px;
+      color: var(--muted);
+      word-break: break-all
+    }
+
+    .hint {
+      font-size: 11px;
+      color: var(--muted)
+    }
+
+    .ok {
+      color: var(--ok)
+    }
+
+    .warn {
+      color: var(--warn)
+    }
+
+    .err {
+      color: var(--err)
+    }
+
+    .errorbox {
+      background: #180d0d;
+      border: 1px solid #4b1d1d;
+      color: #fecaca;
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      display: none;
+      white-space: pre-wrap
+    }
+
+    .legend {
+      position: absolute;
+      right: 12px;
+      bottom: 12px;
+      background: rgba(15, 20, 27, 0.8);
+      border: 1px solid #1f2937;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 12px;
+      line-height: 1.4;
+      pointer-events: none
+    }
+
+    .legend .dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: white;
+      margin-right: 6px
+    }
+
+    .legend .line {
+      display: inline-block;
+      width: 16px;
+      height: 2px;
+      background: white;
+      margin-right: 6px;
+      vertical-align: middle
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid #2b3a52;
+      font-size: 11px;
+      color: #9aa3b2
+    }
+
+    #hoverState {
+      position: absolute;
+      left: 50%;
+      top: 8px;
+      transform: translateX(-50%);
+      background: rgba(15, 20, 27, 0.85);
+      border: 1px solid #223046;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      color: #cbd5e1;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .15s
+    }
+
+    #emptyInfo {
+      position: absolute;
+      inset: 14px;
+      border: 1px dashed #334155;
+      border-radius: 12px;
+      background: rgba(15, 20, 27, .6);
+      padding: 18px;
+      overflow: auto
+    }
+
+    #emptyInfo h2 {
+      margin: 0 0 10px 0;
+      font-size: 18px
+    }
+
+    #emptyInfo p,
+    #emptyInfo li {
+      color: #cdd4de;
+      font-size: 13px;
+      line-height: 1.5
+    }
+
+    #emptyInfo code {
+      background: #0b1017;
+      border: 1px solid #223046;
+      border-radius: 6px;
+      padding: 2px 6px
+    }
+
+    #emptyInfo .steps {
+      margin: 8px 0 0 18px
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <header>
+      <div>
+        <h1>North America EV Charging Stations — Canvas</h1>
+        <div class="sub">Offline. Load CSV → filter <span class="badge">ELEC</span> → cluster ≤ 10 km → edges by <b>car
+            range</b> (≤5/vertex) → vertex & edge colouring → route.</div>
+      </div>
+      <div style="font-size:12px;color:#9aa3b2" id="log">idle</div>
+    </header>
+
+    <aside id="sidebar">
+      <div class="card">
+        <h3>1) Load dataset (CSV)</h3>
+        <label for="file">Select: “Electric and Alternative Fuel Charging Stations.csv”</label>
+        <input type="file" id="file" accept=".csv,text/csv" />
+        <div id="fileInfo" class="fileline"></div>
+        <div id="err" class="errorbox"></div>
+        <div class="hint">Parsed locally in your browser. No upload.</div>
+      </div>
+
+      <div class="card">
+        <h3>2) Options</h3>
+        <div class="row">
+          <div style="flex:1 1 140px;">
+            <label>Cluster threshold (km)</label>
+            <input type="number" id="clusterKm" value="10" min="0" step="5" />
+          </div>
+          <div style="flex:1 1 260px;">
+            <label>Choose your car</label>
+            <select id="carSelect">
+              <option value="tesla" selected>Tesla Model S — Range: 550 km</option>
+              <option value="byd">BYD Seal — Range: 450 km</option>
+              <option value="leaf">Nissan Leaf — Range: 150 km</option>
+              <option value="ev1">General Motors EV1 — Range: 70 km</option>
+            </select>
+          </div>
+          <div style="flex:1 1 140px;">
+            <label>Max edges (global)</label>
+            <input type="number" id="maxEdges" value="200000" min="1000" step="1000" />
+          </div>
+        </div>
+        <div class="row">
+          <div style="flex:2 1 auto;">
+            <label>Point size (px)</label>
+            <input type="range" id="ptSize" min="0.5" max="4.5" step="0.1" value="1.6" />
+          </div>
+          <div style="flex:1 1 auto;">
+            <label>Edges</label>
+            <select id="edgeMode">
+              <option value="off">Off (faster)</option>
+              <option value="on" selected>On</option>
+              <option value="hover">Recompute on view change</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row" style="align-items:center; gap:18px">
+          <label style="display:flex;gap:8px;align-items:center;">
+            <input type="checkbox" id="toggleOutline" /><!-- OFF by default -->
+            <span>Show state/province outlines (non-intersecting)</span>
+          </label>
+          <label style="display:flex;gap:8px;align-items:center;">
+            <input type="checkbox" id="toggleDistances" />
+            <span>Distances</span>
+          </label>
+          <label style="display:flex;gap:8px;align-items:center;">
+            <input type="checkbox" id="toggleColoring" />
+            <span>Vertex Colouring (Greedy)</span>
+          </label>
+          <label style="display:flex;gap:8px;align-items:center;">
+            <input type="checkbox" id="toggleEdgeColoring" />
+            <span>Edge colouring (class colours)</span>
+          </label>
+        </div>
+
+        <div class="row">
+          <button id="plot" class="primary">Load & Plot</button>
+          <button id="edges" disabled>Compute Edges</button>
+          <button id="clear" disabled>Clear</button>
+        </div>
+        <div class="hint">Car range sets the max edge length; each vertex keeps ≤ 5 nearest edges within range.</div>
+      </div>
+
+      <div class="card">
+        <h3>Cross-Country Road Trip</h3>
+        <div class="hint">Click a vertex for <b>Start</b>, then another for <b>End</b>. Shortest path is Dijkstra.</div>
+        <div class="stats" style="grid-template-columns:1fr 1fr;">
+          <div>Start: <span id="tripStart">–</span></div>
+          <div>End: <span id="tripEnd">–</span></div>
+          <div>Distance: <span id="tripDistance">0 km</span></div>
+          <div>Number of chraging stops (Verticies): <span id="tripStops">0</span></div>
+          <div>Status: <span id="tripStatus">waiting</span></div>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <button id="ride" disabled>Ride!</button>
+          <button id="pause" disabled>Pause</button>
+          <button id="clearRoute" disabled>Clear route</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Info</h3>
+        <div class="stats">
+          <div>Clusters (vertices): <span id="clusters" class="ok">0</span></div>
+          <div>Vertices total: <span id="vertsTotal">0</span></div>
+          <div>Edges total: <span id="edgesTotal">0</span></div>
+          <div>Vertices on-screen: <span id="vertsOnScreen">0</span></div>
+          <div>Edges on-screen: <span id="edgesOnScreen">0</span></div>
+          <div>Colours used (vertex): <span id="colorsUsed">–</span></div>
+          <div>Largest class size: <span id="largestClass">–</span></div>
+          <div>Edge colours used: <span id="edgeColorsUsed">–</span></div>
+          <div>Components: <span id="components">–</span></div>
+          <div>Degree distribution: <span id="degCounts">–</span></div>
+          <div>Parsing: <span id="parse">–</span></div>
+          <div>Compute: <span id="compute">–</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <main id="main">
+      <canvas id="c"></canvas>
+      <div id="hoverState">—</div>
+      <div id="emptyInfo">
+        <h2>How to run this offline map</h2>
+        <ol class="steps">
+          <li>Load <code>Electric and Alternative Fuel Charging Stations.csv</code>.</li>
+          <li>Click <b>Load &amp; Plot</b>. The map auto-fits & clusters stations.</li>
+          <h2>Main Features</h2>
+          <li>Majority of the charging stations are located in densly populated area. In order to reduce time compute
+            clustering techique was introduced
+            Clustering algorithm combines together(Graph contraction) vertices that are within certan distance of each
+            other: 10 km by default.
+          </li>
+          <li>Car selection is a feture that affects graph connectivity. By selectinig a car we are inroducing the
+            upper limit of the edge length.
+            So, range of the car is the maximum lenght(weight) of the edge.
+          </li>
+          <li>Another graph limitation is the degree of a vertex. Maximum degree of a vertex is set to 5.
+            This was done in order to approximate road network limitation.</li>
+          <h2>Toggleable Features</h2>
+
+          <li>Outline: draws <b>state/province borders</b>, computed using Voronoi partition. (Work in progress)
+          </li>
+          <li><b>Edge colouring</b>: uses The Misra & Gries edge-coloruing ; each class uses a distinct palette
+            colour.</li>
+          <li><b>Vertex colouring</b>: uses The Greedy colouring ; each class uses a distinct palette colour.</li>
+          <li>Distances: shows small km labels along edges.</li>
+          <h2>UI</h2>
+          <li>You can modify clustering threshold, choose different car, set maximum number of edges(for
+            optimization resons) and increase the size of vertices</li>
+          <li>Trip: pick start & end by clicking; shortest path will draw; press <b>Ride!</b>.</li>
+          <li>Hover to see the state/province; double-click to keep only that region’s vertices.</li>
+          <li>Pan (drag), zoom (wheel). Press <code>0</code> to reset.</li>
+          <li>If Outine is toggled you can double-click on one of the states.
+            This will create a subgraph that will contain only vertices of selected state (work in progress)</li>
+          <li>Check-out <b>Info</b> box to explore graph metrics</li>
+      </div>
+      <div class="legend" id="legend">
+        <div><span class="dot"></span> Vertex</div>
+        <div><span class="line"></span> Edge</div>
+        <div id="carLegend" style="margin-top:6px;">
+          <span class="line" id="carSwatch" style="background:#ef4444;"></span> Car & route
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Minimal polygon helpers (hull, contains) -->
+  <script>
+    const d3 = (() => {
+      function cross(o, a, b) { return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]); }
+      function polygonHull(points) {
+        const pts = points.filter(p => Number.isFinite(p[0]) && Number.isFinite(p[1]));
+        if (pts.length < 3) return null;
+        pts.sort((a, b) => a[0] === b[0] ? a[1] - b[1] : a[0] - b[0]);
+        const lower = []; for (const p of pts) { while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop(); lower.push(p); }
+        const upper = []; for (let i = pts.length - 1; i >= 0; i--) { const p = pts[i]; while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop(); upper.push(p); }
+        upper.pop(); lower.pop();
+        const hull = lower.concat(upper);
+        return hull.length ? hull : null;
+      }
+      function polygonContains(polygon, point) {
+        let n = polygon.length, x = point[0], y = point[1], inside = false;
+        for (let i = 0, j = n - 1; i < n; j = i++) {
+          const xi = polygon[i][0], yi = polygon[i][1];
+          const xj = polygon[j][0], yj = polygon[j][1];
+          const intersect = ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi + 1e-12) + xi);
+          if (intersect) inside = !inside;
+        }
+        return inside;
+      }
+      return { polygonHull, polygonContains };
+    })();
+  </script>
+
+  <script>
+    /*** ===== Config ===== ***/
+    const CARS = {
+      tesla: { name: 'Tesla Model S', rangeKm: 550, color: '#ef4444' },
+      byd: { name: 'BYD Seal', rangeKm: 450, color: '#3b82f6' },
+      leaf: { name: 'Nissan Leaf', rangeKm: 150, color: '#eab308' },
+      ev1: { name: 'General Motors EV1', rangeKm: 70, color: '#10b981' },
+    };
+    let currentCarKey = 'tesla';
+    function currentCar() { return CARS[currentCarKey]; }
+    function edgePalette(k) {
+      const colors = ['#22D3EE', '#F472B6', '#A78BFA', '#34D399', '#F59E0B', '#60A5FA', '#FB7185', '#84CC16', '#F97316', '#2DD4BF', '#9CA3AF', '#F43F5E', '#06B6D4', '#E879F9', '#38BDF8', '#A3E635'];
+      return colors[(k | 0) % colors.length];
+    }
+
+    /*** ===== Utilities ===== ***/
+    const logEl = document.getElementById('log');
+    const errBox = document.getElementById('err');
+    function setLog(s) { logEl.textContent = s; }
+    function showError(msg) { errBox.style.display = 'block'; errBox.textContent = msg; }
+    function clearError() { errBox.style.display = 'none'; errBox.textContent = ''; }
+
+    function normalizeKey(s) { return (s || '').replace(/^\uFEFF/, '').toLowerCase().replace(/[\s\t\r\n]+/g, ' ').trim(); }
+    function parseCSV(text) {
+      if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+      const rows = []; let i = 0, f = '', row = [], q = false;
+      while (i < text.length) {
+        const c = text[i];
+        if (q) { if (c === `"`) { if (text[i + 1] === '"') { f += `"`; i += 2; } else { q = false; i++; } } else { f += c; i++; } }
+        else {
+          if (c === `"`) { q = true; i++; }
+          else if (c === ',') { row.push(f); f = ''; i++; }
+          else if (c === '\r') { i++; }
+          else if (c === '\n') { row.push(f); rows.push(row); f = ''; row = []; i++; }
+          else { f += c; i++; }
+        }
+      }
+      row.push(f); rows.push(row);
+      return rows;
+    }
+    function indexColumns(header) {
+      const map = new Map(); for (let i = 0; i < header.length; i++) { map.set(normalizeKey(header[i]), i); }
+      const col = vars => { for (const v of vars) { const idx = map.get(normalizeKey(v)); if (idx !== undefined) return idx; } return -1; };
+      return {
+        fuel: col(['Fuel Type Code', 'Fuel Type']),
+        lat: col(['Latitude', 'Lat']),
+        lon: col(['Longitude', 'Lon', 'Lng']),
+        zip: col(['ZIP', 'Postal Code', 'Postcode', 'ZIP Code']),
+        country: col(['Country']),
+        state: col(['State', 'Province', 'State Province']),
+        city: col(['City']),
+        name: col(['Station Name', 'Name'])
+      };
+    }
+    function toNumber(s) { const x = parseFloat(s); return Number.isFinite(x) ? x : NaN; }
+
+    /*** ===== Projection / Distance ===== ***/
+    const BOUNDS = { lonMin: -170, lonMax: -50, latMin: 5, latMax: 75 };
+    const WORLD = { w: 120, h: 70 };
+    const R_EARTH_KM = 6371.0;
+
+    function lonLatToXY(lon, lat) {
+      const x = ((lon - BOUNDS.lonMin) / (BOUNDS.lonMax - BOUNDS.lonMin) - 0.5) * WORLD.w;
+      const y = ((lat - BOUNDS.latMin) / (BOUNDS.latMax - BOUNDS.latMin) - 0.5) * WORLD.h;
+      return [x, y];
+    }
+    function haversineKm(lat1, lon1, lat2, lon2) {
+      const toRad = Math.PI / 180, dLat = (lat2 - lat1) * toRad, dLon = (lon2 - lon1) * toRad;
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * toRad) * Math.cos(lat2 * toRad) * Math.sin(dLon / 2) ** 2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R_EARTH_KM * c;
+    }
+
+    /*** ===== Data / State ===== ***/
+    let stationsRaw = [];   // raw ELEC pts: {lat,lon,x,y,state,country}
+    let stations = [];      // clustered centroids
+    let segments = [];      // edges
+    let spatialIndex = null;
+    let adj = [];
+    let edgeCountTotal = 0;
+
+    /* Non-intersecting state/province polygons (Voronoi ∩ convex hull) */
+    let statePolys = [];    // [{key, name, poly}] for drawing & hit-test
+
+    /*** ===== Stats DOM ===== ***/
+    const stats = {
+      clusters: document.getElementById('clusters'),
+      vertsTotal: document.getElementById('vertsTotal'),
+      edgesTotal: document.getElementById('edgesTotal'),
+      vertsOnScreen: document.getElementById('vertsOnScreen'),
+      edgesOnScreen: document.getElementById('edgesOnScreen'),
+      parsing: document.getElementById('parse'),
+      compute: document.getElementById('compute'),
+      colorsUsed: document.getElementById('colorsUsed'),
+      largestClass: document.getElementById('largestClass'),
+      edgeColorsUsed: document.getElementById('edgeColorsUsed'),
+      components: document.getElementById('components'),
+      degCounts: document.getElementById('degCounts'),
+    };
+
+    /*** ===== Canvas + Interaction ===== ***/
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
+
+    let scale = 6, offsetX = 0, offsetY = 0;
+    const MIN_SCALE = 2, MAX_SCALE = 200;
+
+    function resize() {
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      if (w === 0 || h === 0) return;
+      canvas.width = Math.max(1, Math.floor(w * dpr));
+      canvas.height = Math.max(1, Math.floor(h * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    window.addEventListener('resize', resize);
+
+    function worldToScreen(x, y) {
+      const cx = canvas.clientWidth / 2, cy = canvas.clientHeight / 2;
+      return [cx + x * scale + offsetX, cy - y * scale + offsetY];
+    }
+    function screenToWorld(sx, sy) {
+      const cx = canvas.clientWidth / 2, cy = canvas.clientHeight / 2;
+      const x = (sx - cx - offsetX) / scale;
+      const y = -(sy - cy - offsetY) / scale;
+      return [x, y];
+    }
+
+    function fitViewToStations(padPx = 40) {
+      if (!stations.length) return;
+      let xmin = Infinity, xmax = -Infinity, ymin = Infinity, ymax = -Infinity;
+      for (const s of stations) {
+        if (!Number.isFinite(s.x) || !Number.isFinite(s.y)) continue;
+        if (s.x < xmin) xmin = s.x; if (s.x > xmax) xmax = s.x; if (s.y < ymin) ymin = s.y; if (s.y > ymax) ymax = s.y;
+      }
+      if (!isFinite(xmin) || !isFinite(xmax) || !isFinite(ymin) || !isFinite(ymax)) return;
+      const ww = Math.max(0.001, xmax - xmin), hh = Math.max(0.001, ymax - ymin);
+      const W = Math.max(1, canvas.clientWidth - padPx * 2);
+      const H = Math.max(1, canvas.clientHeight - padPx * 2);
+      const sx = W / ww, sy = H / hh;
+      scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, Math.min(sx, sy)));
+      const cxWorld = (xmin + xmax) / 2, cyWorld = (ymin + ymax) / 2;
+      const [cxScreen, cyScreen] = worldToScreen(cxWorld, cyWorld);
+      offsetX += (canvas.clientWidth / 2 - cxScreen);
+      offsetY += (canvas.clientHeight / 2 - cyScreen);
+    }
+
+    let isDragging = false, lastX = 0, lastY = 0;
+    canvas.addEventListener('mousedown', e => { isDragging = true; lastX = e.clientX; lastY = e.clientY; });
+    window.addEventListener('mouseup', () => isDragging = false);
+    window.addEventListener('mousemove', e => {
+      if (!isDragging) return;
+      offsetX += (e.clientX - lastX);
+      offsetY += (e.clientY - lastY);
+      lastX = e.clientX; lastY = e.clientY;
+    });
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      const delta = -Math.sign(e.deltaY) * 0.13;
+      let newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale * (1 + delta)));
+      if (newScale === scale) return;
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+      const [wx, wy] = screenToWorld(mx, my);
+      scale = newScale;
+      const [mx2, my2] = worldToScreen(wx, wy);
+      offsetX += (mx - mx2);
+      offsetY += (my - my2);
+    }, { passive: false });
+    window.addEventListener('keydown', (e) => { if (e.key === '0') { scale = 6; offsetX = 0; offsetY = 0; } });
+
+    /*** ===== UI Elements ===== ***/
+    const fileInput = document.getElementById('file');
+    const fileInfo = document.getElementById('fileInfo');
+    const edgesBtn = document.getElementById('edges');
+    const clearBtn = document.getElementById('clear');
+    const clusterKmInput = document.getElementById('clusterKm');
+    const maxEdgesInput = document.getElementById('maxEdges');
+    const ptSizeInput = document.getElementById('ptSize');
+    const edgeModeSel = document.getElementById('edgeMode');
+    const carSelect = document.getElementById('carSelect');
+    const distancesToggle = document.getElementById('toggleDistances');
+    const coloringToggle = document.getElementById('toggleColoring');
+    const edgeColoringToggle = document.getElementById('toggleEdgeColoring');
+    const outlineToggle = document.getElementById('toggleOutline');
+    const carSwatch = document.getElementById('carSwatch');
+    const hoverStateEl = document.getElementById('hoverState');
+    const emptyInfo = document.getElementById('emptyInfo');
+
+    /*** ===== Trip UI ===== ***/
+    const tripStartEl = document.getElementById('tripStart');
+    const tripEndEl = document.getElementById('tripEnd');
+    const tripDistanceEl = document.getElementById('tripDistance');
+    const tripStatusEl = document.getElementById('tripStatus');
+    const tripStopsEl = document.getElementById('tripStops');
+    const rideBtn = document.getElementById('ride');
+    const pauseBtn = document.getElementById('pause');
+    const clearRouteBtn = document.getElementById('clearRoute');
+
+    let startIdx = null, endIdx = null;
+    let routeIdxList = null;
+    let routeKm = 0;
+    let routeWorldPoints = [];
+    let carAnim = { active: false, tKm: 0, speedKmPerSec: 30, cum: [], totalKm: 0 }; // fast
+
+    function setTripStatus(s) { tripStatusEl.textContent = s; }
+    function setTripStart(i) { startIdx = i; tripStartEl.textContent = i != null ? ('#' + i) : '–'; }
+    function setTripEnd(i) { endIdx = i; tripEndEl.textContent = i != null ? ('#' + i) : '–'; }
+    function resetRoute() {
+      routeIdxList = null; routeKm = 0; routeWorldPoints = [];
+      carAnim = { active: false, tKm: 0, speedKmPerSec: 30, cum: [], totalKm: 0 };
+      tripDistanceEl.textContent = '0 km';
+      tripStopsEl.textContent = '0';
+      setTripStatus('waiting');
+      rideBtn.disabled = true; pauseBtn.disabled = true; clearRouteBtn.disabled = true;
+    }
+
+    /*** ===== Selection by click ===== ***/
+    function pickNearestVertex(sx, sy) {
+      if (!stations.length) return null;
+      const maxPx2 = 9 * 9; let best = null, bestd = Infinity;
+      for (let i = 0; i < stations.length; i++) {
+        const s = stations[i];
+        const [px, py] = worldToScreen(s.x, s.y);
+        const dx = px - sx, dy = py - sy; const d2 = dx * dx + dy * dy;
+        if (d2 < bestd && d2 <= maxPx2) { bestd = d2; best = i; }
+      }
+      return best;
+    }
+    canvas.addEventListener('click', async (e) => {
+      if (!stations.length) return;
+      const nearest = pickNearestVertex(e.clientX - canvas.getBoundingClientRect().left,
+        e.clientY - canvas.getBoundingClientRect().top);
+      if (nearest == null) return;
+
+      if (startIdx == null || (startIdx != null && endIdx != null)) {
+        setTripStart(nearest); setTripEnd(null); resetRoute(); setTripStatus('start selected — pick end');
+      } else if (endIdx == null) {
+        if (nearest === startIdx) return;
+        setTripEnd(nearest); setTripStatus('computing route…');
+        await ensureEdgesAndRoute();
+      }
+    });
+
+    /*** ===== Rendering ===== ***/
+    let lastFrameTs = performance.now();
+    function isOnScreen(sx, sy, W, H, margin = 4) {
+      return sx >= -margin && sy >= -margin && sx <= W + margin && sy <= H + margin;
+    }
+    function drawVertexRing(i, color) {
+      const s = stations[i]; if (!s) return;
+      const [sx, sy] = worldToScreen(s.x, s.y);
+      ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(sx, sy, 6, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+    }
+    function drawCarAt(screenX, screenY, thetaWorld) {
+      const theta = -thetaWorld;
+      ctx.save(); ctx.translate(screenX, screenY); ctx.rotate(theta);
+      ctx.fillStyle = currentCar().color; ctx.strokeStyle = '#1f2937'; ctx.lineWidth = 1;
+      if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(-8, -4, 16, 8, 2); ctx.fill(); ctx.stroke(); }
+      else { ctx.fillRect(-8, -4, 16, 8); ctx.strokeRect(-8, -4, 16, 8); }
+      ctx.fillStyle = '#9ca3af'; ctx.fillRect(-1, -3, 6, 6);
+      ctx.fillStyle = '#111827';
+      for (const [dx, dy] of [[-5, -5], [-5, 5], [5, -5], [5, 5]]) { ctx.beginPath(); ctx.arc(dx, dy, 2, 0, Math.PI * 2); ctx.fill(); }
+      ctx.restore();
+    }
+
+    let colourClassOf = null;
+    let edgeColouringEnabled = false;
+
+    /* Hover label shows state/province */
+    canvas.addEventListener('mousemove', (e) => {
+      if (!outlineToggle.checked || !statePolys.length) { hoverStateEl.style.opacity = 0; return; }
+      const rect = canvas.getBoundingClientRect();
+      const [wx, wy] = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+      const hit = hitRegion([wx, wy]);
+      if (hit) {
+        hoverStateEl.textContent = hit.name;
+        hoverStateEl.style.opacity = 1;
+      } else {
+        hoverStateEl.style.opacity = 0;
+      }
+    });
+
+    /* Double-click to subgraph by selected region */
+    canvas.addEventListener('dblclick', async (e) => {
+      if (!outlineToggle.checked || !statePolys.length || !stations.length) return;
+      const rect = canvas.getBoundingClientRect();
+      const [wx, wy] = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+      const poly = hitRegion([wx, wy]);
+      if (!poly) return;
+      stations = stations.filter(s => d3.polygonContains(poly.poly, [s.x, s.y]));
+      spatialIndex = buildSpatialIndex(stations);
+      segments = []; adj = Array.from({ length: stations.length }, () => []);
+      stats.vertsTotal.textContent = stations.length.toLocaleString();
+      stats.edgesTotal.textContent = '0';
+      stats.components.textContent = '–'; stats.degCounts.textContent = '–';
+      await maybeComputeEdges();
+      fitViewToStations();
+    });
+
+    function render() {
+      const now = performance.now();
+      const dt = Math.min(0.1, (now - lastFrameTs) / 1000);
+      lastFrameTs = now;
+
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      if (w === 0 || h === 0) { requestAnimationFrame(render); return; }
+
+      ctx.fillStyle = '#0b1017';
+      ctx.fillRect(0, 0, w, h);
+
+      // Non-intersecting state/province outlines (toggleable)
+      if (outlineToggle.checked && statePolys.length) {
+        ctx.save();
+        ctx.globalAlpha = 0.9; ctx.lineWidth = 1;
+        ctx.strokeStyle = '#334155';
+        for (const s of statePolys) {
+          if (!s.poly || s.poly.length < 3) continue;
+          ctx.beginPath();
+          for (let i = 0; i < s.poly.length; i++) {
+            const [sx, sy] = worldToScreen(s.poly[i][0], s.poly[i][1]);
+            if (i === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+          }
+          ctx.closePath(); ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // Edges (colored by classes when enabled)
+      let visibleEdges = 0;
+      if (segments.length) {
+        ctx.save();
+        ctx.globalAlpha = edgeColouringEnabled ? 0.95 : 0.52;
+        ctx.lineWidth = edgeColouringEnabled ? 2.0 : 1.0;
+        for (const e of segments) {
+          const [sx1, sy1] = worldToScreen(e.x1, e.y1);
+          const [sx2, sy2] = worldToScreen(e.x2, e.y2);
+          if (isOnScreen(sx1, sy1, w, h) || isOnScreen(sx2, sy2, w, h)) visibleEdges++;
+          let col = '#ffffff';
+          if (edgeColouringEnabled) {
+            const c = (e.color == null || e.color < 0 || !Number.isFinite(e.color)) ? 0 : (e.color | 0);
+            col = edgePalette(c);
+          }
+          ctx.strokeStyle = col;
+          ctx.beginPath(); ctx.moveTo(sx1, sy1); ctx.lineTo(sx2, sy2); ctx.stroke();
+
+          if (distancesToggle.checked) {
+            ctx.save(); ctx.globalAlpha = 0.95; ctx.fillStyle = '#9aa3b2'; ctx.font = '9px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+            const mx = (sx1 + sx2) / 2, my = (sy1 + sy2) / 2; ctx.fillText(Math.round(e.dKm) + ' km', mx + 2, my - 2);
+            ctx.restore();
+          }
+        }
+        ctx.restore();
+      }
+
+      // Route
+      if (routeWorldPoints.length >= 2) {
+        ctx.save(); ctx.strokeStyle = currentCar().color; ctx.lineWidth = 2.5; ctx.beginPath();
+        for (let i = 0; i < routeWorldPoints.length; i++) {
+          const [x, y] = routeWorldPoints[i];
+          const [sx, sy] = worldToScreen(x, y);
+          if (i === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+        }
+        ctx.stroke(); ctx.restore();
+      }
+
+      // Vertices
+      let visibleVerts = 0;
+      if (stations.length) {
+        const size = parseFloat(ptSizeInput.value || '1.6');
+        const pix = Math.max(1, size); const half = pix / 2;
+        for (let i = 0; i < stations.length; i++) {
+          const s = stations[i]; const [sx, sy] = worldToScreen(s.x, s.y);
+          if (!isOnScreen(sx, sy, w, h)) continue;
+          visibleVerts++;
+          ctx.fillStyle = (!coloringToggle.checked || !colourClassOf) ? '#ffffff' : `hsl(${(colourClassOf[i] * 47) % 360} 85% 60%)`;
+          ctx.fillRect(sx - half, sy - half, pix, pix);
+        }
+      }
+
+      // Selection rings
+      if (startIdx != null) drawVertexRing(startIdx, '#34d399');
+      if (endIdx != null) drawVertexRing(endIdx, '#fbbf24');
+
+      // Car on top
+      if (routeWorldPoints.length >= 2 && carAnim.active && carAnim.totalKm > 0) {
+        carAnim.tKm = (carAnim.tKm + carAnim.speedKmPerSec * dt) % carAnim.totalKm;
+        let segIdx = 0; while (segIdx < carAnim.cum.length - 1 && carAnim.tKm > carAnim.cum[segIdx + 1]) segIdx++;
+        const t0 = carAnim.cum[segIdx], t1 = carAnim.cum[segIdx + 1];
+        const local = (carAnim.tKm - t0) / Math.max(1e-9, (t1 - t0));
+        const [x1, y1] = routeWorldPoints[segIdx]; const [x2, y2] = routeWorldPoints[segIdx + 1];
+        const x = x1 + (x2 - x1) * local, y = y1 + (y2 - y1) * local; const theta = Math.atan2(y2 - y1, x2 - x1);
+        const [sx, sy] = worldToScreen(x, y); drawCarAt(sx, sy, theta);
+      }
+
+      stats.vertsOnScreen.textContent = visibleVerts.toLocaleString();
+      stats.edgesOnScreen.textContent = visibleEdges.toLocaleString();
+
+      requestAnimationFrame(render);
+    }
+
+    /*** ===== Clustering ===== ***/
+    function clusterStations(rawStations, clusterKm) {
+      if (clusterKm <= 0) return rawStations.map(r => ({ ...r, n: 1 }));
+      const N = rawStations.length;
+      if (N === 0) return [];
+
+      const parent = new Int32Array(N);
+      const rank = new Uint8Array(N);
+      for (let i = 0; i < N; i++) { parent[i] = i; rank[i] = 0; }
+      const find = (x) => parent[x] === x ? x : (parent[x] = find(parent[x]));
+      const unite = (a, b) => {
+        a = find(a); b = find(b); if (a === b) return;
+        if (rank[a] < rank[b]) [a, b] = [b, a];
+        parent[b] = a; if (rank[a] === rank[b]) rank[a]++;
+      };
+
+      const cellLatDeg = Math.max(0.2, (clusterKm / 111) / 2);
+      const cellLonDeg = 0.2;
+      const key = (ai, bi) => ai + '|' + bi;
+      const buckets = new Map();
+
+      for (let i = 0; i < N; i++) {
+        const s = rawStations[i];
+        const ai = Math.floor((s.lat - BOUNDS.latMin) / cellLatDeg);
+        const bi = Math.floor((s.lon - BOUNDS.lonMin) / cellLonDeg);
+        const k = key(ai, bi);
+        if (!buckets.has(k)) buckets.set(k, []);
+        buckets.get(k).push(i);
+      }
+
+      const nLatFixed = Math.max(1, Math.ceil((clusterKm / 111) / cellLatDeg));
+
+      for (let i = 0; i < N; i++) {
+        const s = rawStations[i];
+        const ai = Math.floor((s.lat - BOUNDS.latMin) / cellLatDeg);
+        const bi = Math.floor((s.lon - BOUNDS.lonMin) / cellLonDeg);
+
+        const cosφ = Math.max(0.2, Math.cos(s.lat * Math.PI / 180));
+        const lonDeg = clusterKm / (111 * cosφ);
+        const nLonAdapt = Math.max(1, Math.ceil(lonDeg / cellLonDeg));
+
+        for (let da = -nLatFixed; da <= nLatFixed; da++) {
+          for (let db = -nLonAdapt; db <= nLonAdapt; db++) {
+            const arr = buckets.get(key(ai + da, bi + db));
+            if (!arr) continue;
+            for (const j of arr) {
+              if (j <= i) continue;
+              const t = rawStations[j];
+              if (haversineKm(s.lat, s.lon, t.lat, t.lon) <= clusterKm) {
+                unite(i, j);
+              }
+            }
+          }
+        }
+      }
+
+      const groups = new Map();
+      for (let i = 0; i < N; i++) {
+        const r = find(i);
+        let g = groups.get(r);
+        if (!g) groups.set(r, g = { sumLat: 0, sumLon: 0, count: 0 });
+        g.sumLat += rawStations[i].lat;
+        g.sumLon += rawStations[i].lon;
+        g.count++;
+      }
+
+      const out = [];
+      for (const g of groups.values()) {
+        const lat = g.sumLat / g.count;
+        const lon = g.sumLon / g.count;
+        const [x, y] = lonLatToXY(lon, lat);
+        out.push({ lat, lon, x, y, n: g.count });
+      }
+      return out;
+    }
+
+    /*** ===== Spatial Index & Edges ===== ***/
+    function buildSpatialIndex(nodes) {
+      const cellLat = 2.5, cellLon = 2.5; const index = new Map();
+      const key = (a, b) => a + ',' + b;
+      for (let i = 0; i < nodes.length; i++) {
+        const s = nodes[i];
+        const a = Math.floor((s.lat - BOUNDS.latMin) / cellLat);
+        const b = Math.floor((s.lon - BOUNDS.lonMin) / cellLon);
+        const k = key(a, b); if (!index.has(k)) index.set(k, []); index.get(k).push(i);
+      }
+      return { index, cellLat, cellLon };
+    }
+
+    async function computeEdgesWithDegreeAsync(maxEdges, kmThresh) {
+      const nodes = stations; const t0 = performance.now();
+      segments = []; adj = Array.from({ length: nodes.length }, () => []); edgeCountTotal = 0;
+      stats.edgesTotal.textContent = '0'; if (!nodes.length) { stats.compute.textContent = '–'; return; }
+      if (!spatialIndex) spatialIndex = buildSpatialIndex(nodes);
+      const { index, cellLat, cellLon } = spatialIndex;
+
+      const DEG_LIMIT = 5; const deg = new Array(nodes.length).fill(0);
+      const edgeSet = new Set(); const latDegPerKm = 1 / 111.0;
+      const nLat = Math.ceil((kmThresh * latDegPerKm) / cellLat); const nLon = nLat + 1;
+
+      function neighborsFor(ai, bi) {
+        const res = [];
+        for (let da = -nLat; da <= nLat; da++) for (let db = -nLon; db <= nLon; db++) {
+          const arr = index.get((ai + da) + ',' + (bi + db)); if (arr) res.push(arr);
+        }
+        return res;
+      }
+
+      const CHUNK = 200; const NEI_CAP = 30; let edges = 0;
+      for (let i = 0; i < nodes.length; i++) {
+        if (deg[i] >= DEG_LIMIT) continue;
+        const s = nodes[i];
+        const ai = Math.floor((s.lat - BOUNDS.latMin) / cellLat);
+        const bi = Math.floor((s.lon - BOUNDS.lonMin) / cellLon);
+
+        const candidates = [];
+        for (const list of neighborsFor(ai, bi)) {
+          for (const j of list) {
+            if (j <= i) continue; if (deg[j] >= DEG_LIMIT) continue;
+            const t = nodes[j];
+            const dLatKm = Math.abs(t.lat - s.lat) * 111.0;
+            const meanLat = (t.lat + s.lat) * 0.5;
+            const dLonKm = Math.abs(t.lon - s.lon) * 111.0 * Math.cos(meanLat * Math.PI / 180);
+            if (dLatKm > kmThresh || dLonKm > kmThresh) continue;
+            const d = haversineKm(s.lat, s.lon, t.lat, t.lon);
+            if (d <= kmThresh) candidates.push([j, d]);
+          }
+        }
+        candidates.sort((a, b) => a[1] - b[1]); if (candidates.length > NEI_CAP) candidates.length = NEI_CAP;
+
+        for (const [j, d] of candidates) {
+          if (edges >= maxEdges) break; if (deg[i] >= DEG_LIMIT) break; if (deg[j] >= DEG_LIMIT) continue;
+          const k = i + '|' + j; if (edgeSet.has(k)) continue; edgeSet.add(k);
+          deg[i]++; deg[j]++;
+          segments.push({ x1: s.x, y1: s.y, x2: nodes[j].x, y2: nodes[j].y, dKm: d, i, j, color: 0 });
+          adj[i].push({ j, dKm: d }); adj[j].push({ j: i, dKm: d });
+          edges++;
+        }
+        if (i % CHUNK === 0) { const elapsed = ((performance.now() - t0) / 1000).toFixed(1) + 's'; stats.compute.textContent = `working… ${elapsed}`; await new Promise(r => setTimeout(r, 0)); }
+      }
+      const t1 = performance.now(); edgeCountTotal = edges;
+      stats.edgesTotal.textContent = edges.toLocaleString();
+      stats.compute.textContent = ((t1 - t0) / 1000).toFixed(1) + 's';
+
+      updateDegreeAndComponents();
+      if (coloringToggle.checked) runGreedyVertexColoring();
+      if (edgeColouringEnabled) await runEdgeColoring();
+    }
+
+    /*** ===== Graph metrics ===== ***/
+    function updateDegreeAndComponents() {
+      if (!stations.length) { stats.components.textContent = '–'; stats.degCounts.textContent = '–'; return; }
+      const n = stations.length; const degree = new Int32Array(n);
+      for (let i = 0; i < n; i++) degree[i] = (adj[i] || []).length;
+      const maxDeg = Math.max(0, ...degree);
+      const counts = Array.from({ length: maxDeg + 1 }, () => 0);
+      for (let i = 0; i < n; i++) counts[degree[i]]++;
+      stats.degCounts.textContent = counts.map((c, idx) => `${idx}:${c}`).join('  ');
+      const vis = new Uint8Array(n); let comps = 0; const q = [];
+      for (let i = 0; i < n; i++) {
+        if (vis[i]) continue; comps++; vis[i] = 1; q.length = 0; q.push(i);
+        while (q.length) { const u = q.pop(); for (const nb of (adj[u] || [])) { const v = nb.j; if (!vis[v]) { vis[v] = 1; q.push(v); } } }
+      }
+      stats.components.textContent = String(comps);
+    }
+
+    /*** ===== Vertex Coloring (Welsh–Powell) ===== ***/
+    function runGreedyVertexColoring() {
+      if (!stations.length || !adj || !adj.length) {
+        colourClassOf = null; stats.colorsUsed.textContent = '–'; stats.largestClass.textContent = '–'; return;
+      }
+      const n = stations.length;
+      const degree = new Int32Array(n);
+      for (let i = 0; i < n; i++) degree[i] = (adj[i] || []).length;
+      const order = Array.from({ length: n }, (_, i) => i).sort((a, b) => degree[b] - degree[a]);
+      const color = new Int32Array(n); color.fill(-1);
+      let colorsUsed = 0;
+      for (const u of order) {
+        const used = new Set();
+        for (const nb of (adj[u] || [])) { const v = nb.j; if (color[v] !== -1) used.add(color[v]); }
+        let c = 0; while (used.has(c)) c++;
+        color[u] = c; if (c + 1 > colorsUsed) colorsUsed = c + 1;
+      }
+      const sizes = new Int32Array(colorsUsed);
+      for (let i = 0; i < n; i++) { if (color[i] >= 0) sizes[color[i]]++; }
+      const maxClass = sizes.length ? Math.max(...sizes) : 0;
+      colourClassOf = color;
+      stats.colorsUsed.textContent = String(colorsUsed);
+      stats.largestClass.textContent = String(maxClass);
+    }
+
+    /*** ===== Edge Coloring ===== ***/
+    async function runEdgeColoring() {
+      edgeColouringEnabled = true; stats.edgeColorsUsed.textContent = '…';
+      if (!segments.length || !stations.length) { stats.edgeColorsUsed.textContent = '0'; return; }
+
+      // Δ = max vertex degree
+      let delta = 0;
+      for (let i = 0; i < adj.length; i++) delta = Math.max(delta, (adj[i] || []).length);
+
+      // Greedy order: edges attached to high-degree vertices first
+      const deg = adj.map(l => (l ? l.length : 0));
+      const order = segments.map((_, idx) => idx).sort((a, b) => {
+        const ea = segments[a], eb = segments[b];
+        return (deg[eb.i] + deg[eb.j]) - (deg[ea.i] + deg[ea.j]);
+      });
+
+      let K = Math.max(1, delta);
+      if (!greedyEdgeColoring(K, order)) { K = delta + 1; greedyEdgeColoring(K, order); }
+      stats.edgeColorsUsed.textContent = String(K);
+    }
+    function greedyEdgeColoring(K, order) {
+      // Ensure enough bit capacity (degree limit ≤5, so 32 bits ok; still guard)
+      const usedMask = new Uint32Array(stations.length);
+      // Reset colours
+      for (let e = 0; e < segments.length; e++) segments[e].color = -1;
+
+      for (const idx of order) {
+        const e = segments[idx]; const u = e.i, v = e.j; let assigned = -1;
+        const maskU = usedMask[u] | 0, maskV = usedMask[v] | 0;
+        // Try colours 0..K-1
+        for (let c = 0; c < K; c++) {
+          const bit = (1 << c) >>> 0;
+          if (((maskU & bit) === 0) && ((maskV & bit) === 0)) { assigned = c; break; }
+        }
+        if (assigned === -1) {
+          // Fallback: expand palette on the fly
+          assigned = K++;
+        }
+        e.color = assigned;
+        usedMask[u] = (usedMask[u] | (1 << assigned)) >>> 0;
+        usedMask[v] = (usedMask[v] | (1 << assigned)) >>> 0;
+      }
+      return true;
+    }
+
+    /*** ===== Shortest path (Dijkstra) ===== ***/
+    class MinHeap {
+      constructor() { this.a = []; }
+      push(x) { const a = this.a; a.push(x); this.up(a.length - 1); }
+      up(i) { const a = this.a; while (i > 0) { const p = (i - 1) >> 1; if (a[p][0] <= a[i][0]) break;[a[p], a[i]] = [a[i], a[p]]; i = p; } }
+      pop() { const a = this.a; if (!a.length) return null; const top = a[0]; const x = a.pop(); if (a.length) { a[0] = x; this.down(0); } return top; }
+      down(i) { const a = this.a; const n = a.length; while (true) { let l = i * 2 + 1, r = l + 1, m = i; if (l < n && a[l][0] < a[m][0]) m = l; if (r < n && a[r][0] < a[m][0]) m = r; if (m === i) break;[a[i], a[m]] = [a[m], a[i]]; i = m; } }
+      get size() { return this.a.length; }
+    }
+    async function ensureEdgesAndRoute() {
+      if (!adj || !adj.length || !adj[0] || adj[0].length === undefined) { await maybeComputeEdges(); }
+      const result = computeShortestPath(startIdx, endIdx);
+      if (!result || !result.path) {
+        setTripStatus('no path (graph disconnected)'); rideBtn.disabled = true; pauseBtn.disabled = true; clearRouteBtn.disabled = (startIdx == null && endIdx == null); tripStopsEl.textContent = '0'; return;
+      }
+      routeIdxList = result.path; routeKm = result.distKm;
+      routeWorldPoints = routeIdxList.map(i => [stations[i].x, stations[i].y]);
+      tripDistanceEl.textContent = routeKm.toFixed(1) + ' km';
+      tripStopsEl.textContent = routeIdxList.length.toString();
+      setTripStatus('route ready');
+
+      carAnim.active = false; carAnim.tKm = 0; carAnim.cum = [0];
+      for (let i = 0; i < routeIdxList.length - 1; i++) {
+        const a = stations[routeIdxList[i]], b = stations[routeIdxList[i + 1]];
+        const d = haversineKm(a.lat, a.lon, b.lat, b.lon);
+        carAnim.cum.push(carAnim.cum[carAnim.cum.length - 1] + d);
+      }
+      carAnim.totalKm = carAnim.cum[carAnim.cum.length - 1];
+      rideBtn.disabled = false; pauseBtn.disabled = false; clearRouteBtn.disabled = false;
+    }
+    function computeShortestPath(s, t) {
+      if (s == null || t == null || s < 0 || t < 0 || s >= stations.length || t >= stations.length) return null;
+      const n = stations.length; const dist = new Float64Array(n); dist.fill(Infinity); dist[s] = 0;
+      const prev = new Int32Array(n); prev.fill(-1);
+      const heap = new MinHeap(); heap.push([0, s]);
+      const visited = new Uint8Array(n);
+      while (heap.size) {
+        const [d, u] = heap.pop(); if (visited[u]) continue; visited[u] = 1; if (u === t) break;
+        for (const nb of (adj[u] || [])) {
+          const v = nb.j, w = nb.dKm; const nd = d + w;
+          if (nd < dist[v]) { dist[v] = nd; prev[v] = u; heap.push([nd, v]); }
+        }
+      }
+      if (!Number.isFinite(dist[t])) return null;
+      const path = []; for (let cur = t; cur != -1; cur = prev[cur]) path.push(cur); path.reverse();
+      return { path, distKm: dist[t] };
+    }
+
+    /*** ===== Voronoi & polygon clipping (for non-intersecting state borders) ===== ***/
+    function dot(a, b) { return a[0] * b[0] + a[1] * b[1]; }
+    function polygonClipHalfPlane(poly, a, b, rhs) { // keep a*x + b*y <= rhs
+      const out = []; if (!poly || !poly.length) return out;
+      for (let i = 0; i < poly.length; i++) {
+        const P = poly[i], Q = poly[(i + 1) % poly.length];
+        const fP = a * P[0] + b * P[1] - rhs;
+        const fQ = a * Q[0] + b * Q[1] - rhs;
+        const inP = fP <= 1e-9, inQ = fQ <= 1e-9;
+        if (inP && inQ) { out.push(Q); }
+        else if (inP && !inQ) {
+          const t = fP / (fP - fQ + 1e-20);
+          out.push([P[0] + t * (Q[0] - P[0]), P[1] + t * (Q[1] - P[1])]);
+        } else if (!inP && inQ) {
+          const t = fP / (fP - fQ + 1e-20);
+          out.push([P[0] + t * (Q[0] - P[0]), P[1] + t * (Q[1] - P[1])]);
+          out.push(Q);
+        }
+      }
+      return out;
+    }
+    function isLeft(A, B, P) { return (B[0] - A[0]) * (P[1] - A[1]) - (B[1] - A[1]) * (P[0] - A[0]); }
+    function lineIntersect(A, B, C, D) { // AB with CD
+      const a1 = B[1] - A[1], b1 = A[0] - B[0], c1 = a1 * A[0] + b1 * A[1];
+      const a2 = D[1] - C[1], b2 = C[0] - D[0], c2 = a2 * C[0] + b2 * C[1];
+      const det = a1 * b2 - a2 * b1; if (Math.abs(det) < 1e-12) return null;
+      const x = (b2 * c1 - b1 * c2) / det, y = (a1 * c2 - a2 * c1) / det; return [x, y];
+    }
+    function polygonClipPolygon(subject, clip) { // Sutherland–Hodgman, keep inside clip (convex)
+      let output = subject.slice();
+      for (let i = 0; i < clip.length; i++) {
+        const A = clip[i], B = clip[(i + 1) % clip.length]; const input = output.slice(); output = [];
+        if (!input.length) break;
+        for (let j = 0; j < input.length; j++) {
+          const P = input[j], Q = input[(j + 1) % input.length];
+          const inP = isLeft(A, B, P) >= -1e-9;
+          const inQ = isLeft(A, B, Q) >= -1e-9;
+          if (inP && inQ) { output.push(Q); }
+          else if (inP && !inQ) {
+            const I = lineIntersect(P, Q, A, B); if (I) output.push(I);
+          } else if (!inP && inQ) {
+            const I = lineIntersect(P, Q, A, B); if (I) output.push(I);
+            output.push(Q);
+          }
+        }
+      }
+      return output;
+    }
+    function voronoiCells(sites, boundsPoly) { // simple O(n^2) half-plane intersection
+      const cells = sites.map(() => boundsPoly.slice());
+      for (let i = 0; i < sites.length; i++) {
+        const si = sites[i]; const xi = si[0], yi = si[1]; const ri = xi * xi + yi * yi;
+        let poly = cells[i];
+        for (let j = 0; j < sites.length; j++) {
+          if (i === j) continue;
+          const sj = sites[j]; const xj = sj[0], yj = sj[1]; const rj = xj * xj + yj * yj;
+          const a = xj - xi, b = yj - yi, rhs = (rj - ri) / 2;
+          poly = polygonClipHalfPlane(poly, a, b, rhs);
+          if (poly.length === 0) break;
+        }
+        cells[i] = poly;
+      }
+      return cells;
+    }
+
+    /*** ===== Mainland filters & building non-intersecting state polygons ===== ***/
+    const EXCLUDED_US = new Set(['AK', 'HI', 'PR', 'VI', 'GU', 'AS', 'MP']);
+    function nameForCountry(code) {
+      const c = (code || '').toUpperCase();
+      if (c === 'US' || c === 'USA' || c === 'UNITED STATES') return 'United States';
+      if (c === 'CA' || c === 'CAN' || c === 'CANADA') return 'Canada';
+      return code || 'Unknown';
+    }
+    const NAME_TO_US_ABBR = { 'ALASKA': 'AK', 'HAWAII': 'HI', 'PUERTO RICO': 'PR', 'GUAM': 'GU', 'VIRGIN ISLANDS': 'VI', 'NORTHERN MARIANA ISLANDS': 'MP', 'AMERICAN SAMOA': 'AS' };
+    function normStateAbbr(s) {
+      if (!s) return '';
+      const t = s.trim();
+      if (t.length === 2) return t.toUpperCase();
+      const up = t.toUpperCase();
+      return NAME_TO_US_ABBR[up] || t;
+    }
+    function buildStatePolysNonIntersecting() {
+      statePolys = [];
+      if (!stationsRaw.length) return;
+
+      // Group station points by state/province (mainland only)
+      const byState = new Map();
+      const allPts = [];
+
+      for (const r of stationsRaw) {
+        const country = nameForCountry(r.country);
+        const stKeyRaw = (r.state && r.state.trim()) ? r.state.trim() : null;
+        if (country === 'United States') {
+          const abbr = normStateAbbr(r.state || '');
+          if (EXCLUDED_US.has(abbr)) continue; // drop AK/HI/PR etc
+          const key = abbr || stKeyRaw || 'US-UNK';
+          if (!byState.has(key)) byState.set(key, []);
+          byState.get(key).push([r.x, r.y]);
+          allPts.push([r.x, r.y]);
+        } else if (country === 'Canada') {
+          const key = stKeyRaw || 'CA-UNK';
+          if (!byState.has(key)) byState.set(key, []);
+          byState.get(key).push([r.x, r.y]);
+          allPts.push([r.x, r.y]);
+        }
+      }
+
+      if (allPts.length < 3) return;
+
+      // Compute a rectangular bounds polygon around all points (expanded), convex & simple
+      let xmin = Infinity, xmax = -Infinity, ymin = Infinity, ymax = -Infinity;
+      for (const p of allPts) { if (p[0] < xmin) xmin = p[0]; if (p[0] > xmax) xmax = p[0]; if (p[1] < ymin) ymin = p[1]; if (p[1] > ymax) ymax = p[1]; }
+      const pad = 6;
+      const boundsRect = [
+        [xmin - pad, ymin - pad],
+        [xmax + pad, ymin - pad],
+        [xmax + pad, ymax + pad],
+        [xmin - pad, ymax + pad],
+      ];
+
+      // Sites: centroids per state/province + convex hull per state
+      const keys = Array.from(byState.keys());
+      const sites = [];
+      const hulls = [];
+      const names = [];
+      for (const key of keys) {
+        const pts = byState.get(key);
+        if (!pts || pts.length < 3) { // still create small triangle to avoid empty
+          const [cx, cy] = pts && pts.length ? pts.reduce((a, b) => [a[0] + b[0], a[1] + b[1]], [0, 0]).map(v => v / pts.length) : [0, 0];
+          sites.push([cx, cy]); hulls.push(null); names.push(key); continue;
+        }
+        const hull = d3.polygonHull(pts);
+        const c = pts.reduce((acc, p) => [acc[0] + p[0], acc[1] + p[1]], [0, 0]).map(v => v / pts.length);
+        sites.push(c); hulls.push(hull); names.push(key);
+      }
+
+      // Global Voronoi (non-intersecting by construction)
+      const cells = voronoiCells(sites, boundsRect);
+
+      // Clip each cell to its own state's convex hull (if available) to better follow station footprint
+      for (let i = 0; i < keys.length; i++) {
+        let poly = cells[i];
+        const hull = hulls[i];
+        if (hull && hull.length >= 3) {
+          poly = polygonClipPolygon(poly, hull);
+        }
+        if (poly && poly.length >= 3) {
+          statePolys.push({ key: keys[i], name: keys[i], poly });
+        }
+      }
+    }
+
+    function hitRegion(p) {
+      for (const s of statePolys) { if (s.poly && d3.polygonContains(s.poly, p)) return s; }
+      return null;
+    }
+
+    /*** ===== Handlers ===== ***/
+    document.getElementById('plot').addEventListener('click', async () => {
+      if (!fileInput.files[0]) { showError('Please select the CSV file first.'); return; }
+      clearError(); setLog('Parsing CSV…'); stats.parsing.textContent = 'parsing…';
+      edgesBtn.disabled = true; clearBtn.disabled = false;
+
+      try {
+        let text = await fileInput.files[0].text();
+        if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+        const rows = parseCSV(text);
+        if (!rows.length) { stats.parsing.textContent = 'error'; showError('CSV appears empty.'); return; }
+
+        const header = rows[0] || [];
+        const cols = indexColumns(header);
+        if (cols.fuel < 0 || cols.lat < 0 || cols.lon < 0) {
+          stats.parsing.textContent = 'error';
+          showError('Required columns not found: “Fuel Type Code”, “Latitude”, “Longitude”.\nFound: ' + header.join(', '));
+          return;
+        }
+
+        const elec = [];
+        for (let r = 1; r < rows.length; r++) {
+          const row = rows[r]; if (!row || !row.length) continue;
+          const fuel = (row[cols.fuel] || '').trim();
+          if (fuel !== 'ELEC') continue;
+          const lat = toNumber(row[cols.lat]); const lon = toNumber(row[cols.lon]);
+          if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+          if (lon < BOUNDS.lonMin || lon > BOUNDS.lonMax || lat < BOUNDS.latMin || lat > BOUNDS.latMax) continue;
+          const [x, y] = lonLatToXY(lon, lat);
+          const country = cols.country >= 0 ? (row[cols.country] || '').trim() : (lat > 41 ? 'Canada' : 'United States');
+          const state = cols.state >= 0 ? (row[cols.state] || '').trim() : '';
+          elec.push({ lat, lon, x, y, country, state });
+        }
+        stationsRaw = elec;
+        stats.parsing.textContent = 'ok';
+        setLog(`ELEC raw: ${stationsRaw.length.toLocaleString()}`);
+
+        // Non-intersecting state/province outlines (Voronoi ∩ hull)
+        setLog('Computing non-intersecting state/province outlines…');
+        buildStatePolysNonIntersecting();
+
+        // Cluster (safe default if empty)
+        const clusterKm = Math.max(0, parseFloat(clusterKmInput.value) || 10);
+        setLog('Clustering…');
+        stations = clusterStations(stationsRaw, clusterKm);
+        stats.clusters.textContent = stations.length.toLocaleString();
+        stats.vertsTotal.textContent = stations.length.toLocaleString();
+
+        // Reset graph
+        spatialIndex = buildSpatialIndex(stations);
+        segments = []; adj = Array.from({ length: stations.length }, () => []);
+        edgeCountTotal = 0; stats.edgesTotal.textContent = '0'; stats.compute.textContent = '–';
+        edgesBtn.disabled = false;
+        setTripStart(null); setTripEnd(null); resetRoute();
+        colourClassOf = null; stats.colorsUsed.textContent = '–'; stats.largestClass.textContent = '–';
+        stats.edgeColorsUsed.textContent = '–';
+
+        // Show map
+        emptyInfo.style.display = 'none';
+        fitViewToStations();
+        await maybeComputeEdges();
+
+      } catch (e) {
+        stats.parsing.textContent = 'error';
+        showError('Failed to parse CSV: ' + (e && e.message ? e.message : e));
+        console.error(e);
+      }
+    });
+
+    edgesBtn.addEventListener('click', async () => {
+      await maybeComputeEdges();
+      if (startIdx != null && endIdx != null) await ensureEdgesAndRoute();
+    });
+
+    clearBtn.addEventListener('click', () => {
+      stationsRaw = []; stations = []; segments = []; spatialIndex = null; adj = [];
+      statePolys = [];
+      stats.clusters.textContent = '0'; stats.vertsTotal.textContent = '0';
+      stats.edgesTotal.textContent = '0'; stats.parsing.textContent = '–'; stats.compute.textContent = '–';
+      stats.vertsOnScreen.textContent = '0'; stats.edgesOnScreen.textContent = '0';
+      stats.degCounts.textContent = '–'; stats.components.textContent = '–';
+      stats.colorsUsed.textContent = '–'; stats.largestClass.textContent = '–';
+      stats.edgeColorsUsed.textContent = '–';
+      setTripStart(null); setTripEnd(null); resetRoute();
+      emptyInfo.style.display = 'block';
+      setLog('idle');
+    });
+
+    edgeModeSel.addEventListener('change', async () => {
+      if (edgeModeSel.value === 'on' && stations.length) {
+        await maybeComputeEdges();
+        if (startIdx != null && endIdx != null) await ensureEdgesAndRoute();
+      }
+    });
+
+    // Car change → update legend color and recompute edges if enabled
+    carSelect.addEventListener('change', async () => {
+      currentCarKey = carSelect.value;
+      carSwatch.style.background = currentCar().color;
+      if (stations.length && (edgeModeSel.value === 'on' || edgeModeSel.value === 'hover')) {
+        await maybeComputeEdges();
+        if (startIdx != null && endIdx != null) await ensureEdgesAndRoute();
+      }
+    });
+
+    // Recompute on view change (hover mode)
+    let recomputeTimer = null;
+    function scheduleRecompute() {
+      if (edgeModeSel.value !== 'hover') return;
+      if (!stations.length) return;
+      if (recomputeTimer) cancelAnimationFrame(recomputeTimer);
+      recomputeTimer = requestAnimationFrame(async () => {
+        await maybeComputeEdges();
+        if (startIdx != null && endIdx != null) await ensureEdgesAndRoute();
+        recomputeTimer = null;
+      });
+    }
+    window.addEventListener('mouseup', scheduleRecompute);
+    canvas.addEventListener('wheel', scheduleRecompute);
+
+    // Vertex colouring toggle
+    coloringToggle.addEventListener('change', async () => {
+      if (!coloringToggle.checked) {
+        colourClassOf = null; stats.colorsUsed.textContent = '–'; stats.largestClass.textContent = '–';
+        return;
+      }
+      if (!adj || !adj.length || !adj[0] || adj[0].length === undefined) {
+        await maybeComputeEdges();
+      }
+      runGreedyVertexColoring();
+    });
+
+    // Edge colouring toggle
+    edgeColoringToggle.addEventListener('change', async () => {
+      edgeColouringEnabled = edgeColoringToggle.checked;
+      if (!edgeColouringEnabled) {
+        for (const e of segments) e.color = -1;
+        stats.edgeColorsUsed.textContent = '–';
+        return;
+      }
+      if (!segments.length) { stats.edgeColorsUsed.textContent = '0'; return; }
+      await runEdgeColoring(); // assigns e.color for ALL edges; renderer paints distinct class colours
+    });
+
+    // Trip buttons
+    rideBtn.addEventListener('click', () => { if (!routeWorldPoints.length) return; carAnim.active = true; setTripStatus('riding…'); });
+    pauseBtn.addEventListener('click', () => { carAnim.active = false; setTripStatus('paused'); });
+    clearRouteBtn.addEventListener('click', () => { setTripStart(null); setTripEnd(null); resetRoute(); });
+
+    /*** ===== Edge recompute helper ===== ***/
+    async function maybeComputeEdges() {
+      if (edgeModeSel.value === 'on') {
+        const maxEdges = parseInt(maxEdgesInput.value || '200000', 10);
+        await computeEdgesWithDegreeAsync(maxEdges, currentCar().rangeKm);
+        if (edgeColouringEnabled) await runEdgeColoring();
+      }
+    }
+
+    // Kickoff
+    carSwatch.style.background = currentCar().color;
+    resize(); requestAnimationFrame(render);
+  </script>
+</body>
+
+</html>
