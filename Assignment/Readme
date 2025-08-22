@@ -14,6 +14,8 @@ All scripts must be in the same directory
 RUNNING THE PROGRAMS
 1) Task 1 – Build the graph (run first)
 
+You should change path to the csv file on line 29
+
 Constructs a connected 15-vertex subgraph and writes outputs to files used by Tasks 2 & 3.
 Outputs created by Task 1 (in the repo folder):
 
