@@ -1,0 +1,48 @@
+This project contains three Python programs that build and analyze a 15-vertex subgraph of electric charging stations in North America:
+
+Task 1 – Graph Construction & Fundamentals
+Builds a 15-station connected subgraph using a ≤ 550 km edge threshold and a per-vertex degree cap ≤ 5 (0-weight edges removed). Exports the graph, matrices, and figures.
+
+Task 2 – Connectivity, Network Flows & Shortest Paths
+Uses the Task 1 graph to compute vertex/edge connectivity and cuts, a max-flow/min-cut between west/east sides, and a shortest path from A→O.
+
+Task 3 – Graph Colouring
+Uses the Task 1 graph to produce a proper greedy vertex colouring and a 5-colour edge colouring example.
+
+All scripts must be in the same directory
+========================================================================================================================
+RUNNING THE PROGRAMS
+1) Task 1 – Build the graph (run first)
+
+Constructs a connected 15-vertex subgraph and writes outputs to files used by Tasks 2 & 3.
+Outputs created by Task 1 (in the repo folder):
+
+    task1_graph.json ← required by Tasks 2 & 3
+
+    task1_edges.csv
+
+    task1_adjacency.csv
+
+    task1_incidence_small.csv
+
+2) Task 2 – Connectivity, Max-Flow/Min-Cut, Shortest Path
+
+Requires task1_graph.json from Task 1.
+
+Outputs:
+
+    task2_flow.json
+
+    task2_shortest_path.txt
+
+3) Task 3 – Graph Colouring
+
+Requires task1_graph.json from Task 1.
+
+Outputs:
+
+    task3_colouring.txt
+
+    task3_edge_colouring.json
+
+    task3_vertex_colouring.json
